@@ -29,7 +29,14 @@
             </el-icon>
             <span>用户登录</span>
           </el-menu-item>
-          <div style="height: 30px"></div>
+		  
+		  <el-menu-item index="/good">
+            <el-icon>
+              <User />
+            </el-icon>
+            <span>商品管理</span>
+          </el-menu-item>
+
         </el-menu>
       </el-aside>
       <el-container>

@@ -11,7 +11,7 @@
       用户
     </div>
     <div style="width: 45%; margin: 0 auto; padding-top: 5vh">
-      <div class="loginBox">
+      <div class="goodBox">
         <!-- 卡片标题 -->
 
         <!-- 卡片内容 -->
