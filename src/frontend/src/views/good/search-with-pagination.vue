@@ -10,29 +10,18 @@
 	  >
 		商品展示
 	  </div>
-	  <div class="top-right">
-		<el-button :icon="Search" @click = "find">
-		<button>Search</button>
-		</el-button></div>
-
+	  <el-button :icon="Search" @click = "find">
+      <button>Search</button>
+	  </el-button>
 	  <div style="width: 90%; margin: 0 auto; padding-top: 5vh">
-		<div class="card-container">
-			<el-card
-			v-for="item in currentItems"
-			:key="item.id"
-			:class="card"
-			:name="item.name"
-			:description="item.description"
+		<div class="goodBox">
+			<Agood
+			v-for="(card, index) in cards"
+			:key="index"
+			:title="card.title"
+			:description="card.description"
 			/>	
-			
 		</div>
-		<el-pagination
-		@current-change="handleCurrentChange"
-		:current-page="currentPage"
-		:page-size="pageSize"
-		:total="totalItems"
-		layout="total, prev, pager, next, jumper"
-    	/>
 	  </div>
 	</el-scrollbar>
 </template>
@@ -51,27 +40,6 @@
 	  Search() {
 		return Search
 	  }
-	},
-	setup(){
-	const currentPage = ref(1);
-    const pageSize = ref(5);
-    const totalItems = computed(() => items.value.length);
-
-    // 当前页商品
-    const currentItems = computed(() => {
-      const start = (currentPage.value - 1) * pageSize.value;
-      return items.value.slice(start, start + pageSize.value);
-    });
-	const handleCurrentChange = (page) => {
-      currentPage.value = page;
-	};
-	return {
-      currentItems,
-      currentPage,
-      pageSize,
-      totalItems,
-      handleCurrentChange
-    };
 	},
 	data() {
 	return {
@@ -108,11 +76,16 @@
   </script>
   
   <style scoped>
-  .top-right {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
- }
+  .loginBox {
+	height: 300px;
+	width: 400px;
+	margin-top: 40px;
+	margin-left: 27.5px;
+	margin-right: 10px;
+	padding: 7.5px;
+	padding-right: 10px;
+	padding-top: 15px;
+	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	text-align: center;
+  }
   </style>

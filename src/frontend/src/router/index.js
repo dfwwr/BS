@@ -20,7 +20,11 @@ const router = createRouter({
 		{
             path: '/good',
             component: () => import('../views/good/good.vue')
-        }
+        },
+		{
+            path: '/good/search-with-pagination',
+            component: () => import('../views/good/search-with-pagination.vue')
+		}
     ]
 })
 
