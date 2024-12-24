@@ -11,10 +11,100 @@
 		商品展示
 	  </div>
 
-	  <el-button :icon="Search" @click = "find">
-      <button>Search</button>
-	  </el-button>
+		<div class="dashboard-container">
+			<div class="search-box">
+			<form @submit.prevent="checkLogin">
+				<input
+					type="text"
+					placeholder="探索你心仪的商品吧..."
+					v-model="productName"
+				/>
+				<button class="search-btn" type="button" @click="checkLogin()">
+				<img src="./search.png" alt="搜索">
+				</button>
+			</form>
+			</div>
+		
 
+		<el-dialog v-model="jd_card" center>
+			<template #header>
+				<div>
+				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				</div>
+				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
+				「 京东 」
+				</div>
+			</template>
+			<img :src="jd_qrcode === '' ? require('./qrcode.png') : jd_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<template #footer>
+				<div style="font-size: 13px">
+				（取消扫码则跳过京东的搜索结果）
+				</div>
+			</template>
+		</el-dialog>
+
+		<el-dialog :visible.sync="vph_card" center>
+			<template #header>
+				<div>
+				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				</div>
+				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
+				「 唯品会 」
+				</div>
+			</template>
+			<img :src="vph_qrcode === '' ? require('./qrcode.png') : vph_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<template #footer>
+				<div style="font-size: 13px">
+				（取消扫码则跳过唯品会的搜索结果）
+				</div>
+			</template>
+		</el-dialog>
+
+		<el-dialog :visible.sync="sn_card" center>
+			<template #header>
+				<div>
+				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				</div>
+				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
+				「 苏宁易购 」
+				</div>
+			</template>
+			<img :src="sn_qrcode === '' ? require('./qrcode.png') : sn_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<template #footer>
+				<div style="font-size: 13px">
+				（取消扫码则跳过苏宁易购的搜索结果）
+				</div>
+			</template>
+		</el-dialog>
+
+		<div class="product-filter">
+			<el-row type="flex" align="middle" style="margin-bottom: 10px">
+				<el-col :span="10" :xs="20">
+					<el-checkbox-group v-model="selectedPlatforms">
+						<el-checkbox label="京东">京东</el-checkbox>
+						<el-checkbox label="唯品会">唯品会</el-checkbox>
+						<el-checkbox label="苏宁">苏宁易购</el-checkbox>
+					</el-checkbox-group>
+				</el-col>
+				<el-col :span="2" :xs="24">
+				<el-input v-model="priceRange[0]" placeholder="最低价" @input="handlePriceChange"></el-input>
+				</el-col>
+				<el-col :span="1" :xs="24" style="text-align: center;">
+				——
+				</el-col>
+				<el-col :span="2" :xs="24">
+				<el-input v-model="priceRange[1]" placeholder="最高价" @input="handlePriceChange"></el-input>
+				</el-col>
+
+				<el-col :span="2" :xs="24" style="margin-left: 36px; margin-right: 20px">
+				<el-button type="primary" @click="sortProducts('low')">价格从低到高</el-button>
+				</el-col>
+				<el-col :span="2" :xs="24">
+				<el-button type="primary" @click="sortProducts('high')" style="margin-left: 20px">价格从高到低</el-button>
+				</el-col>
+			</el-row>
+		</div> 
+		</div>
 	  <div style="width: 90%; margin: 0 auto; padding-top: 5vh">
 		<div id="gooddisplay">
 		<ul>
@@ -28,7 +118,7 @@
 		<button @click="prevPage" :disabled="currentPage === 1">上一页</button>
 		<button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
 		<span>当前页: {{ currentPage }} / {{ totalPages }}</span>
-	</div>
+		</div>
 	  </div>
 	</el-scrollbar>
 </template>
@@ -44,7 +134,7 @@
 		Agood,
 	},
 	created() {
-    this.fetchGoods();
+    //this.fetchGoods();
   	},
 	computed: {
 		totalPages() {
@@ -58,12 +148,88 @@
 		return Search
 	  }
 	},
-
+	watch: {
+		jd_card(newVal, oldVal) {
+			if (newVal === false && oldVal === true) {
+				this.jd_qrcode = ''
+				if(this.jd_timer) {
+					clearTimeout(this.jd_timer)
+					this.jd_timer = null
+				}
+				if (this.vph_check === 'false') {
+					this.vph_card = true
+					this.vphLogin()
+				}
+				else if (this.sn_check === 'false') {
+					this.sn_card = true
+					this.snLogin()
+				}
+				else {
+					this.loading.close()
+					this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
+					this.Search()
+				}
+			}
+		},
+		vph_card(newVal, oldVal) {
+			if (newVal === false && oldVal === true) {
+				this.vph_qrcode = ''
+				if(this.vph_timer) {
+				clearTimeout(this.vph_timer)
+				this.vph_timer = null
+				}
+				if (this.sn_check === 'false') {
+				this.sn_card = true
+				this.snLogin()
+				}
+				else {
+				this.loading.close()
+				this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
+				this.Search()
+				}
+			}
+		},
+		sn_card(newVal, oldVal) {
+			if (newVal === false && oldVal === true) {
+				this.sn_qrcode = ''
+				if(this.sn_timer) {
+				clearTimeout(this.sn_timer)
+				this.sn_timer = null
+				}
+				this.loading.close()
+				this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
+				this.Search()
+			}
+		},
+	},
 	data() {
 	return {
+		search_goods:false,
+		productName: '',
+		user_id:null,
 		currentPage: 1,
 		pageSize: 10,
-      	cards: []
+      	cards: [],
+		products: [],
+		sortType: '',
+		priceRange: ['', ''],
+		//allPlatforms: ['京东', '唯品会', '苏宁'],
+		selectedPlatforms: [],
+		loading: null,
+		jd_timer: null,
+		jd_qrcode: '',
+		jd_card: false,
+		jd_check: '',
+
+		vph_timer: null,
+		vph_qrcode: '',
+		vph_card: false,
+		vph_check: '',
+
+		sn_timer: null,
+		sn_qrcode: '',
+		sn_card: false,
+		sn_check: '',
     };
 	},
 
@@ -82,20 +248,169 @@
 			window.location.href = "/good/search-with-pagination";
 		},
 
+		checkLogin() {
+		this.search_goods=true
+      	this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
+      	axios.post('http://127.0.0.1:8000/search/checklogin/', {
+			method: 'check',
+			user_id: this.user_id,
+      		}).then(response => {
+			let res = response.data
+			this.jd_check = res.jd
+			this.vph_check = res.vph
+			this.sn_check = res.sn
+
+			if (this.jd_check === 'false') {
+			this.loading.close()
+			this.jd_card = true
+			this.jdLogin()
+			}
+			else if (this.vph_check === 'false') {
+			this.loading.close()
+			this.vph_card = true
+			this.vphLogin()
+			}
+			else if (this.sn_check === 'false') {
+			this.loading.close()
+			this.sn_card = true
+			this.snLogin()
+			}
+			else
+			this.Search()
+      		})
+			.catch((error) => {
+				console.log(error)
+				ElMessage.error(error.response.data.error);
+			});
+    	},
+
+		jdLogin() {
+		axios.post('http://127.0.0.1:8000/search/login/', {
+			method: 'jd_login',
+			user_id:this.user_id,
+      	}).then(response => {
+			console.log(response.data)
+			console.log(this.jd_card)
+        let res = response.data
+        if (res.message === '待扫码') {
+          if (this.jd_card === false)
+            return
+          this.jd_qrcode = res.qrcode
+          this.jd_card = true
+          this.jd_timer = setTimeout(this.jdLogin, 8000)
+        }
+        else if (res.message === '扫码成功') {
+          this.jd_card = false
+          this.$message.success('扫码成功')
+        }
+        else {
+          this.$message.error('扫码失败，请重新搜索')
+          console.log(res.message)
+        } })
+		},
+
+		vphLogin() {
+		axios.post('http://127.0.0.1:8000/search/login/', {
+			method: 'vph_login',
+			user_id:this.user_id,
+		}).then(response => {
+			let res = response.data
+			if (res.message === '待扫码') {
+			if (this.vph_card === false)
+				return
+			this.vph_qrcode = res.qrcode
+			this.vph_card = true
+			this.vph_timer = setTimeout(this.vphLogin, 8000)
+			}
+			else if (res.message === '扫码成功') {
+			this.vph_card = false
+			this.$message.success('扫码成功')
+			}
+			else {
+			this.$message.error('扫码失败，请重新搜索')
+			console.log(res.message)
+			}
+		})
+		},
+
+		snLogin() {
+		axios.post('http://127.0.0.1:8000/search/login/', {
+			method: 'sn_login',
+			user_id:this.user_id,
+		}).then(response => {
+			let res = response.data
+			if (res.message === '待扫码') {
+			if (this.sn_card === false)
+				return
+			this.sn_qrcode = res.qrcode
+			this.sn_card = true
+			this.sn_timer = setTimeout(this.snLogin, 8000)
+			}
+			else if (res.message === '扫码成功') {
+			this.sn_card = false
+			this.$message.success('扫码成功')
+			}
+			else {
+			this.$message.error('扫码失败，请重新搜索')
+			console.log(res.message)
+			}
+		})
+		},
+
 		fetchGoods() {
-			axios
-			.get("http://127.0.0.1:8000/api/Goods")
+			if(this.search_goods==False){
+			axios.post("http://127.0.0.1:8000/api/Goods",{
+				user_id:this.user_id
+			})
 			.then((response) => {
-				console.log('Response:', response); // 打印整个响应
 				this.cards =response.data;
 			})
 			.catch((error) => {
-				console.error('Error:', error); // 打印错误信息
+				ElMessage.error(error.response.data.error);
 			});
+			}
 		},
 		},
-
+		Search() {
+		this.$message.success('查询中，请稍等')
+		Promise.allSettled([
+			axios.post('http://127.0.0.1:8000/search/goodsearch/', 
+			{method: 'jd_search', user_id:this.user_id, name:this.productName}),
+			axios.post('http://127.0.0.1:8000/search/goodsearch/', 
+			{method: 'vph_search', user_id:this.user_id, name:this.productName}),
+			axios.post('http://127.0.0.1:8000/search/goodsearch/',
+			 {method: 'sn_search', user_id:this.user_id, name:this.productName}),
+		]).then(responses => {
+			this.products = []
+			responses.forEach(response => {
+			if (response.status === 'fulfilled') {
+				let res = response.value.data
+				if (res.message === 'success')
+				this.products = this.products.concat(res.products)
+			}
+			else
+				console.log(response.reason)
+			})
+			this.loading.close()
+			this.$message.success('成功查询')
+		}).catch(error => {
+			console.log('Error fetching data:', error)
+			this.$message.error('查询失败，请重试')
+		})
+		},
+		handlePriceChange() {
+			// 确保最高价不小于最低价
+			const [minPrice, maxPrice] = this.priceRange.map(range => range === '' ? null : parseFloat(range));
+			if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
+				this.priceRange[0] = this.priceRange[1];
+			}
+		},
+		sortProducts(type) {
+			this.sortType = type;
+		},
 	mounted() {
+		this.user_id = this.$store.state.user.id
+		console.log(this.user_id)
 	},
   };
   </script>
@@ -113,4 +428,172 @@
 	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	text-align: center;
   }
+.dashboard-container {
+
+.search-box {
+  margin: 50px auto 40px;
+  position: relative;
+  width: 400px; /* 增加搜索框的宽度 */
+  height: 50px; /* 增加搜索框的高度 */
+  background-color: #ffffff;
+  border-radius: 25px; /* 圆润的搜索框 */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影以增加立体感 */
+
+  input {
+	width: 100%;
+	height: 100%;
+	padding: 0 20px;
+	border: none;
+	background: none;
+	outline: none;
+	color: #333;
+	font-size: 16px;
+  }
+
+  .search-btn {
+	position: absolute;
+	right: 0;
+	top: 2px;
+	width: 50px;
+	height: 50px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	outline: none;
+
+	img {
+	  width: 80%;
+	  height: auto;
+	}
+  }
+}
+
+.product-card {
+  margin-bottom: 10px;
+  height: 500px;
+  width: 300px;
+}
+
+.product-image {
+  width: 100%; /* 使图片宽度适应容器 */
+  height: 200px; /* 设置图片高度 */
+  object-fit: cover; /* 裁剪图片以适应容器 */
+}
+
+.product-detail-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #9ea0a1; /* Element UI 主题色 */
+  text-decoration: none; /* 去除下划线 */
+}
+
+.product-detail-link:hover {
+  text-decoration: underline; /* 鼠标悬浮时添加下划线 */
+}
+
+:deep(.el-dialog) {
+  width: 25%;
+}
+
+:deep(.el-dialog .el-dialog__body) {
+  flex: 1;
+  overflow: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.product-filter {
+  margin-left: 36px;
+  margin-bottom: 30px;
+}
+
+ .page-button1 {
+	  display: inline-block;
+	  border-radius: 20px;
+	  background-color: #72d1b2;
+	  border: none;
+	  color: #ffff;
+	  text-align: center;
+	  font-size: 16px;
+	  font-weight: 400;
+	  padding: 12px;
+	  width: 120px;
+	  transition: all 0.5s;
+	  cursor: pointer;
+	  margin: 5px;
+	  vertical-align: middle;
+	}
+
+	.page-button1 span {
+	  cursor: pointer;
+	  display: inline-block;
+	  position: relative;
+	  transition: 0.5s;
+	}
+
+	.page-button1 span::before {
+	  content: "<<";
+	  position: absolute;
+	  opacity: 0;
+	  top: 0;
+	  left: -20px;
+	  transition: 0.5s;
+	}
+
+	.page-button1:hover span {
+	  padding-left: 30px;
+	}
+
+	.page-button1:hover span::before {
+	  opacity: 1;
+	  left: 0;
+	}
+
+ .page-button2 {
+	  display: inline-block;
+	  border-radius: 20px;
+	  background-color: #a181d5;
+	  border: none;
+	  color: #ffff;
+	  text-align: center;
+	  font-size: 16px;
+	  font-weight: 400;
+	  padding: 12px;
+	  width: 120px;
+	  transition: all 0.5s;
+	  cursor: pointer;
+	  margin: 5px;
+	  vertical-align: middle;
+	}
+
+	.page-button2 span {
+	  cursor: pointer;
+	  display: inline-block;
+	  position: relative;
+	  transition: 0.5s;
+	}
+
+	.page-button2 span::after {
+	  content: ">>";
+	  position: absolute;
+	  opacity: 0;
+	  top: 0;
+	  right: -20px;
+	  transition: 0.5s;
+	}
+
+	.page-button2:hover span {
+	  padding-right: 30px;
+	}
+
+	.page-button2:hover span::after {
+	  opacity: 1;
+	  right: 0;
+	}
+
+}
   </style>

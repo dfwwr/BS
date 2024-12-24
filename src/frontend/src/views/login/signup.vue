@@ -32,8 +32,8 @@
             <el-form-item label="电话号码"  style = "margin-top: 5px;">
               <el-input v-model="phone" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
             </el-form-item>
-            <el-form-item label="身份证号" style = "margin-top: 5px;">
-              <el-input v-model="IDCard" style="width: 12.5vw; margin-left: 1rem" type="password" maxlength="20" clearable/>
+            <el-form-item label="邮箱" style = "margin-top: 5px;">
+              <el-input v-model="email" style="width: 12.5vw; margin-left: 1rem" maxlength="25" clearable/>
             </el-form-item>
 
             <!-- 卡片操作 -->
@@ -59,7 +59,7 @@ export default {
     return {
       account: "",
       password: "",
-      IDCard: "",
+      email: "",
       phone: "",
     };
   },
@@ -70,13 +70,17 @@ export default {
     handle() {
       axios
         .post("http://127.0.0.1:8000/user/sign_up/", {
-          user_name: this.account,
+          username: this.account,
           password: this.password,
-          identity_card: this.IDCard,
-          phone_num: this.phone,
+          email: this.email,
+          phone: this.phone,
         })
         .then((response) => {
-          window.location.href = "/login/user";
+			console.log(response)
+			ElMessage.success(response.data.message);
+          	setTimeout(() => {
+        	window.location.href = "/login/user"; // 跳转到指定页面
+   			}, 1000);
         })
         .catch((error) => {
           ElMessage.error(error.response.data.error);

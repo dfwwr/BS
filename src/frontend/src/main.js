@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import store from './store'
 
 const app = createApp(App)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
@@ -16,5 +17,6 @@ axios.defaults.baseURL = 'http://localhost:8000';
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
+app.use(store)
 app.mount('#app')
 

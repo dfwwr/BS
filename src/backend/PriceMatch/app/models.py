@@ -12,7 +12,7 @@ class Goods(models.Model):
         return self.good_name
     
 class User(models.Model):
-    id = models.AutoField(primary_key=True)
+    user_id = models.AutoField(primary_key=True)
     username=models.CharField(max_length=255,null=False,unique=True)
     password = models.CharField(max_length=255,null=False)
     email = models.CharField(max_length=255,null=False,unique=True)
@@ -35,3 +35,27 @@ class User_good(models.Model):
     good_id=models.ForeignKey(Goods,on_delete=models.CASCADE)
     def __str__(self):
         return self.user_id.username
+
+class jdCookie(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    cookie = models.TextField()  # 存储cookie的字段，使用TextField因为它可能很长
+    created_at = models.DateTimeField(auto_now_add=True)  # 创建时间
+
+    def __str__(self):
+        return f"{self.user.username}'s jd_cookie"
+
+class snCookie(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    cookie = models.TextField()  # 存储cookie的字段，使用TextField因为它可能很长
+    created_at = models.DateTimeField(auto_now_add=True)  # 创建时间
+
+    def __str__(self):
+        return f"{self.user.username}'s sn_cookie"
+
+class vphCookie(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    cookie = models.TextField()  # 存储cookie的字段，使用TextField因为它可能很长
+    created_at = models.DateTimeField(auto_now_add=True)  # 创建时间
+
+    def __str__(self):
+        return f"{self.user.username}'s vph_cookie"

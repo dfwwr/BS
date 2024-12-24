@@ -24,7 +24,7 @@
           <el-divider/>
           <el-form label-position="right" label-width="100px" style=" font-weight: bolder; font-size: 10px">
             <el-form-item label="用户名"  style = "margin-top: 5px;">
-              <el-input v-model="account" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
+              <el-input v-model="username" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
             </el-form-item>
             <el-form-item label="密码" style = "margin-top: 5px;">
               <el-input v-model="password" style="width: 12.5vw; margin-left: 1rem" type="password" maxlength="20" clearable/>
@@ -57,12 +57,9 @@ export default {
   },
   data() {
     return {
-      account: "",
+      username: "",
       password: "",
       user_id:0,
-      user: {
-        id: "",
-      },
     };
   },
   methods: {
@@ -72,14 +69,19 @@ export default {
     handle() {
       axios
         .post("http://127.0.0.1:8000/user/sign_in/", { // 后端URL
-          user_name: this.account,
+          username: this.username,
           password: this.password,
         })
         .then((response) => {
-          window.location.href =
-            "/online_user?user_id=" + response.data.user_id;//到online_user.html
+          const{data}=response
+          console.log(data)
+          localStorage.setItem('user_id',data.user_id)
+          console.log(data)
+          this.$store.commit('SET_ID', data.user_id)
+          window.location.href ="/good";//到online_user.html
         })
         .catch((error) => {
+          console.log(error)
           ElMessage.error(error.response.data.error);
         });
     },
