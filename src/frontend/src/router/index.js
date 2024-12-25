@@ -17,14 +17,18 @@ const router = createRouter({
             path: '/login/signup',
             component: Signup,
         },
+        {
+            path: '/star/user',
+            component: () => import('../views/star/user.vue')
+		},
 		{
             path: '/good',
             component: () => import('../views/good/good.vue')
         },
-		{
-            path: '/good/search-with-pagination',
-            component: () => import('../views/good/search-with-pagination.vue')
-		}
+        {
+            path: '/user',
+            component: () => import('../views/user/user.vue')
+        }
     ]
 })
 

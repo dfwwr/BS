@@ -29,13 +29,20 @@
 		<el-dialog v-model="jd_card" center>
 			<template #header>
 				<div>
-				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				使用微信扫一扫登录
+				</div>
+				<div>
+					请确保您的微信账号与京东账号已绑定！
 				</div>
 				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
 				「 京东 」
 				</div>
 			</template>
-			<img :src="jd_qrcode === '' ? require('./qrcode.png') : jd_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<img 
+				:src="jd_qrcode === '' ? defaultQrcode : jd_qrcode" 
+				alt="微信扫码登录" 
+				style="clear: both; display: block; margin: auto; width: 50%;"
+			>
 			<template #footer>
 				<div style="font-size: 13px">
 				（取消扫码则跳过京东的搜索结果）
@@ -43,16 +50,23 @@
 			</template>
 		</el-dialog>
 
-		<el-dialog :visible.sync="vph_card" center>
+		<el-dialog v-model="vph_card" center>
 			<template #header>
 				<div>
-				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				使用微信扫一扫登录
+				</div>
+				<div>
+					请确保您的微信账号与唯品会账号已绑定！
 				</div>
 				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
 				「 唯品会 」
 				</div>
 			</template>
-			<img :src="vph_qrcode === '' ? require('./qrcode.png') : vph_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<img 
+				:src="vph_qrcode === '' ? defaultQrcode : vph_qrcode" 
+				alt="微信扫码登录" 
+				style="clear: both; display: block; margin: auto; width: 50%;"
+			>
 			<template #footer>
 				<div style="font-size: 13px">
 				（取消扫码则跳过唯品会的搜索结果）
@@ -60,16 +74,23 @@
 			</template>
 		</el-dialog>
 
-		<el-dialog :visible.sync="sn_card" center>
+		<el-dialog v-model="sn_card" center>
 			<template #header>
 				<div>
-				<svg-icon icon-class="wechat"/> 使用微信扫一扫登录
+				使用微信扫一扫登录
+				</div>
+				<div>
+					请确保您的微信账号与苏宁易购账号已绑定！
 				</div>
 				<div style="font-weight: bold; font-size: 22px; margin-top: 16px;">
 				「 苏宁易购 」
 				</div>
 			</template>
-			<img :src="sn_qrcode === '' ? require('./qrcode.png') : sn_qrcode" alt="微信扫码登录" style="clear: both; display: block; margin: auto; width: 50%;">
+			<img 
+				:src="sn_qrcode === '' ? defaultQrcode : sn_qrcode" 
+				alt="微信扫码登录" 
+				style="clear: both; display: block; margin: auto; width: 50%;"
+			>
 			<template #footer>
 				<div style="font-size: 13px">
 				（取消扫码则跳过苏宁易购的搜索结果）
@@ -104,49 +125,93 @@
 				</el-col>
 			</el-row>
 		</div> 
+
+		<div class="products">
+			<el-row>
+			<el-col :span="6" :xs="24" v-for="product in filteredProducts" :key="product.title" style="display: flex; justify-content: center;">
+				<el-card class="product-card">
+				<img :src="product.img" class="product-image" alt="商品图片">
+				<div style="padding: 14px;">
+					<div class="price" style="color: brown; font-weight: bold; font-size: 26px;">
+					￥{{ product.price }}
+					</div>
+					<div class="title" style="font-weight: bold; margin-top: 10px; font-size: 14px;
+					line-clamp: 4;overflow: hidden;
+					display: -webkit-box;-webkit-box-orient: vertical;-webkit-line-clamp: 4;  ">
+					{{ product.title }}
+					</div>
+					<div class="sales" style="color: #666666; margin-top: 10px; font-size: 14px;">
+					已售 <span style="color: #1482f0">{{ product.sales }}</span>
+					</div>
+					<div class="shop" style="color: #666666; margin-top: 10px; font-size: 14px;">
+						{{ product.platform }}
+					</div>
+					<div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+					<a :href="product.link" target="_blank" class="product-detail-link">查看详情</a>		
+      				<el-button
+        			type="primary"
+					circle size="small"
+					@click="star_product(product)"
+					>
+					<el-icon :size="20"><StarFilled /></el-icon>
+					</el-button>
+					</div>
+				</div>
+				</el-card>
+			</el-col>
+			</el-row>
+			<button @click="prevPage" :disabled="currentPage === 1">上一页</button>
+			<button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
+			<span>当前页: {{ currentPage }} / {{ totalPages }}</span>
+			</div>
 		</div>
-	  <div style="width: 90%; margin: 0 auto; padding-top: 5vh">
-		<div id="gooddisplay">
-		<ul>
-			<Agood
-			v-for="(card, index) in cards"
-			:key="index"
-			:title="card.good_name"
-			:description="card.description"
-			/>	
-		</ul>
-		<button @click="prevPage" :disabled="currentPage === 1">上一页</button>
-		<button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
-		<span>当前页: {{ currentPage }} / {{ totalPages }}</span>
-		</div>
-	  </div>
+	  
 	</el-scrollbar>
 </template>
 
 
  <script>
   import axios from "axios";
-  import Agood from "./Agood.vue";
   import { ElMessage } from "element-plus";
-  import {Search} from "@element-plus/icons-vue";
+  import { StarFilled } from '@element-plus/icons-vue'
+  import defaultQrcode from './qrcode.png'  
   export default {
 	components:{
-		Agood,
+		StarFilled,
 	},
 	created() {
     //this.fetchGoods();
   	},
 	computed: {
 		totalPages() {
-            return Math.ceil(this.cards.length / this.pageSize);
+            return Math.ceil(this.products.length / this.pageSize);
         },
         paginatedData() {
             const start = (this.currentPage - 1) * this.pageSize;
-            return this.cards.slice(start, start + this.pageSize);
+            return this.products.slice(start, start + this.pageSize);
         },
-	  Search() {
-		return Search
-	  }
+		filteredProducts() {
+		// 将 priceRange 中的空字符串转换为 null 以表示无限制
+		// 如果没有选择任何平台，则默认选择所有平台
+		const selectedPlatforms = this.selectedPlatforms.length === 0 ? this.allPlatforms : this.selectedPlatforms
+		// 将 priceRange 中的空字符串转换为 null 以表示无限制
+		const [minPrice, maxPrice] = this.priceRange.map(range => range === '' ? null : parseFloat(range))
+		// 根据平台、价格范围和排序类型过滤和排序产品
+		console.log(this.products)
+		let filteredAndSortedProducts = this.products.filter(product =>
+			selectedPlatforms.includes(product.platform) &&
+			(minPrice === null || product.price >= minPrice) &&
+			(maxPrice === null || product.price <= maxPrice)
+		)
+		if (this.sortType === 'low') {
+			filteredAndSortedProducts = filteredAndSortedProducts.sort((a, b) => a.price - b.price)
+		} else if (this.sortType === 'high') {
+			filteredAndSortedProducts = filteredAndSortedProducts.sort((a, b) => b.price - a.price)
+		}
+		const start = (this.currentPage - 1) * this.pageSize;
+		const end = this.currentPage * this.pageSize;
+		return filteredAndSortedProducts.slice(start, end)
+		},
 	},
 	watch: {
 		jd_card(newVal, oldVal) {
@@ -167,7 +232,7 @@
 				else {
 					this.loading.close()
 					this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
-					this.Search()
+					this.good_search()
 				}
 			}
 		},
@@ -185,7 +250,7 @@
 				else {
 				this.loading.close()
 				this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
-				this.Search()
+				this.good_search()
 				}
 			}
 		},
@@ -198,23 +263,23 @@
 				}
 				this.loading.close()
 				this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
-				this.Search()
+				this.good_search()
 			}
 		},
 	},
 	data() {
 	return {
-		search_goods:false,
+		defaultQrcode:defaultQrcode,
 		productName: '',
 		user_id:null,
 		currentPage: 1,
-		pageSize: 10,
+		pageSize: 8,
       	cards: [],
 		products: [],
 		sortType: '',
 		priceRange: ['', ''],
-		//allPlatforms: ['京东', '唯品会', '苏宁'],
-		selectedPlatforms: [],
+		allPlatforms: ['京东', '唯品会', '苏宁'],
+		selectedPlatforms: ['京东', '唯品会', '苏宁'],
 		loading: null,
 		jd_timer: null,
 		jd_qrcode: '',
@@ -249,34 +314,38 @@
 		},
 
 		checkLogin() {
-		this.search_goods=true
       	this.loading = this.$loading({fullscreen: false, text: '稍等一下下，马上就加载出来啦...', target: '.products'})
       	axios.post('http://127.0.0.1:8000/search/checklogin/', {
 			method: 'check',
 			user_id: this.user_id,
       		}).then(response => {
+			console.log(response.data)
 			let res = response.data
 			this.jd_check = res.jd
 			this.vph_check = res.vph
 			this.sn_check = res.sn
-
-			if (this.jd_check === 'false') {
+			const needsJD = this.selectedPlatforms.includes("京东");
+			const needsVPH = this.selectedPlatforms.includes("唯品会");
+			const needsSN = this.selectedPlatforms.includes("苏宁");
+			if (this.jd_check === 'false' && needsJD) {
 			this.loading.close()
 			this.jd_card = true
 			this.jdLogin()
 			}
-			else if (this.vph_check === 'false') {
+			else if (this.vph_check === 'false' && needsVPH) {
 			this.loading.close()
 			this.vph_card = true
 			this.vphLogin()
 			}
-			else if (this.sn_check === 'false') {
+			else if (this.sn_check === 'false' && needsSN) {
 			this.loading.close()
 			this.sn_card = true
 			this.snLogin()
 			}
 			else
-			this.Search()
+			{
+				this.good_search()
+			}
       		})
 			.catch((error) => {
 				console.log(error)
@@ -293,11 +362,17 @@
 			console.log(this.jd_card)
         let res = response.data
         if (res.message === '待扫码') {
-          if (this.jd_card === false)
-            return
-          this.jd_qrcode = res.qrcode
-          this.jd_card = true
-          this.jd_timer = setTimeout(this.jdLogin, 8000)
+			if (this.jd_card === false)
+				return
+			this.jd_qrcode = res.qrcode
+			this.jd_card = true
+
+			if(this.jd_qrcode === ''){
+				this.$message.error('无法登录，请检查您的账号')
+				this.jd_card=false;
+				return 
+			}
+          	this.jd_timer = setTimeout(this.jdLogin, 8000)
         }
         else if (res.message === '扫码成功') {
           this.jd_card = false
@@ -316,11 +391,16 @@
 		}).then(response => {
 			let res = response.data
 			if (res.message === '待扫码') {
-			if (this.vph_card === false)
+				if (this.vph_card === false)
 				return
-			this.vph_qrcode = res.qrcode
-			this.vph_card = true
-			this.vph_timer = setTimeout(this.vphLogin, 8000)
+				this.vph_qrcode = res.qrcode
+				this.vph_card = true
+				if(this.vph_qrcode === ''){
+					this.$message.error('无法登录，请检查您的账号')
+					this.vph_card=false;
+					return 
+				}
+				this.vph_timer = setTimeout(this.vphLogin, 8000)
 			}
 			else if (res.message === '扫码成功') {
 			this.vph_card = false
@@ -344,6 +424,10 @@
 				return
 			this.sn_qrcode = res.qrcode
 			this.sn_card = true
+			if(this.sn_qrcode === ''){
+				this.$message.error('无法登录，请检查您的账号')
+				return 
+			}
 			this.sn_timer = setTimeout(this.snLogin, 8000)
 			}
 			else if (res.message === '扫码成功') {
@@ -356,22 +440,7 @@
 			}
 		})
 		},
-
-		fetchGoods() {
-			if(this.search_goods==False){
-			axios.post("http://127.0.0.1:8000/api/Goods",{
-				user_id:this.user_id
-			})
-			.then((response) => {
-				this.cards =response.data;
-			})
-			.catch((error) => {
-				ElMessage.error(error.response.data.error);
-			});
-			}
-		},
-		},
-		Search() {
+		good_search() {
 		this.$message.success('查询中，请稍等')
 		Promise.allSettled([
 			axios.post('http://127.0.0.1:8000/search/goodsearch/', 
@@ -381,6 +450,7 @@
 			axios.post('http://127.0.0.1:8000/search/goodsearch/',
 			 {method: 'sn_search', user_id:this.user_id, name:this.productName}),
 		]).then(responses => {
+			this.good_search=true
 			this.products = []
 			responses.forEach(response => {
 			if (response.status === 'fulfilled') {
@@ -398,8 +468,8 @@
 			this.$message.error('查询失败，请重试')
 		})
 		},
+
 		handlePriceChange() {
-			// 确保最高价不小于最低价
 			const [minPrice, maxPrice] = this.priceRange.map(range => range === '' ? null : parseFloat(range));
 			if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) {
 				this.priceRange[0] = this.priceRange[1];
@@ -408,6 +478,21 @@
 		sortProducts(type) {
 			this.sortType = type;
 		},
+		star_product(product){
+			axios.post("http://127.0.0.1:8000/good/star_product/", { // 后端URL
+			user_id: this.user_id,
+			product:product,
+			productname:this.productName
+			})
+			.then((response) => {
+				this.$message.success('成功收藏')
+			})
+			.catch((error) => {
+			console.log(error)
+			ElMessage.error(error.response.data.error);
+			});
+		}
+	},
 	mounted() {
 		this.user_id = this.$store.state.user.id
 		console.log(this.user_id)
@@ -470,7 +555,10 @@
 	}
   }
 }
-
+.is-favorite {
+  background-color: #F56C6C !important;
+  color: white !important;
+}
 .product-card {
   margin-bottom: 10px;
   height: 500px;

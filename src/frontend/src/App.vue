@@ -30,14 +30,29 @@
             <span>用户登录</span>
           </el-menu-item>
 		  
-		  <el-menu-item index="/good">
+		    <el-menu-item index="/good">
             <el-icon>
               <User />
             </el-icon>
-            <span>商品管理</span>
+            <span>商品添加</span>
+          </el-menu-item>
+
+        <el-menu-item index="/star/user">
+            <el-icon>
+              <User />
+            </el-icon>
+            <span>我的收藏</span>
+          </el-menu-item>
+
+          <el-menu-item index="/user">
+            <el-icon>
+              <User />
+            </el-icon>
+            <span>信息管理</span>
           </el-menu-item>
 
         </el-menu>
+
       </el-aside>
       <el-container>
         <el-header style="height: 0vh"></el-header>

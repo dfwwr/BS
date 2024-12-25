@@ -1,7 +1,7 @@
 # views.py
 from django.core.paginator import Paginator
 from django.shortcuts import render
-from .models import Goods,User,User_good,Log
+from .models import Goods,User,User_good,Log,PriceAlert
 from .models import jdCookie,snCookie,vphCookie
 from .serializers import GoodsSerializer
 from django.views.decorators.csrf import csrf_exempt
@@ -13,28 +13,34 @@ from .jd import jd_login,jd_crawler
 from .vph import vph_login,vph_crawler
 from .sn import sn_login,sn_crawler
 import json
+from time import sleep
 jd_map={}
 sn_map={}
 vph_map={}
 
-def item_list(request):
-    item_list = Goods.objects.all()
-    paginator = Paginator(item_list, 10)  # 每页 10 个条目
-
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'app/item_list.html', {'page_obj': page_obj})
-
 @csrf_exempt
 def GoodsList(request):
+
     if request.method == 'POST':
         body = json.loads(request.body)
         userid = body.get('user_id')
-        good_ids=User_good.objects.filter(user_id=userid).values_list('good_id',flat=True)
-        goods = Goods.objects.filter(good_id=good_ids)\
-        .values('good_name','good_description',
-          'good_scale','good_type','good_pic')
-        goods_list=list(goods)
+        good_ids=User_good.objects.filter(user_id=userid).values_list('good_id',flat=True)   
+        goods_list=[]
+        for id in good_ids:
+            good=Goods.objects.filter(good_id=id)\
+            .values('good_id','good_name','good_description',
+            'good_scale','good_type','good_pic','good_link','good_platform').first()
+            good_dict=dict(good)
+            latest_price=Log.objects.filter(good_id=id)\
+                .order_by('-timestamp').values('prise','timestamp').first()
+            
+            if latest_price:
+                good_dict['price']=latest_price['prise']
+                good_dict['price_update_time']=latest_price['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                good_dict['price']=None
+                good_dict['price_update_time']=None
+            goods_list.append(good_dict)
         return JsonResponse(goods_list,safe=False)
 
 @csrf_exempt
@@ -74,22 +80,6 @@ def Signin(request):
         return JsonResponse({'message': 'Login successful','user_id':user.user_id})
     else:
         return JsonResponse({'message': 'Invalid request method'})
-    
-@csrf_exempt
-def get_product_data_taobao(request):
-    response = {}
-    try:
-        payload = {}
-
-        response['payload'] = payload
-        response['code'] = 0
-        response['err'] = ""
-    except Exception as e:
-        response['code'] = 1
-        response['err'] = str(e)
-        print(e)
-    
-    return JsonResponse(response)
 
 @csrf_exempt
 def CheckLogin(request):
@@ -101,27 +91,29 @@ def CheckLogin(request):
             response['jd'] = 'true'
             response['vph'] = 'true'
             response['sn'] = 'true'
-            
+            user=User.objects.get(user_id=req['user_id'])
+            print(user)
             try:
-                jd_cookie = jdCookie.objects.get(user_id=req['user_id'])
+                jd_cookie = jdCookie.objects.get(user_id=user)
+                print(jd_cookie)
                 if timezone.now() - jd_cookie.created_at > timedelta(days=1):
-                    jdCookie.objects.filter(user_id=req['user_id']).delete()
+                    jdCookie.objects.filter(user_id=user).delete()
                     raise jdCookie.DoesNotExist
             except jdCookie.DoesNotExist:
                 response['jd'] = 'false'
             
             try:
-                vph_cookie = vphCookie.objects.get(user_id=req['user_id'])
+                vph_cookie = vphCookie.objects.get(user_id=user)
                 if timezone.now() - vph_cookie.created_at > timedelta(days=1):
-                    vphCookie.objects.filter(user_id=req['user_id']).delete()
+                    vphCookie.objects.filter(user_id=user).delete()
                     raise vphCookie.DoesNotExist
             except vphCookie.DoesNotExist:
                 response['vph'] = 'false'
             
             try:
-                sn_cookie = snCookie.objects.get(user_id=req['user_id'])
+                sn_cookie = snCookie.objects.get(user_id=user)
                 if timezone.now() - sn_cookie.created_at > timedelta(days=1):
-                    snCookie.objects.filter(user_id=req['user_id']).delete()
+                    snCookie.objects.filter(user_id=user).delete()
                     raise snCookie.DoesNotExist
             except snCookie.DoesNotExist:
                 response['sn'] = 'false'
@@ -134,9 +126,9 @@ def CheckLogin(request):
 def Login(request):
     response={}
     req = json.loads(request.body)
+    user = User.objects.get(user_id=req['user_id'])
     if request.method == 'POST':
         if req['method'] == 'jd_login':
-            
             if req['user_id'] not in jd_map:
                 bro = avoid_check()
                 bro.get('https://passport.jd.com/new/login.aspx')
@@ -145,7 +137,9 @@ def Login(request):
                 res = jd_login(jd_map[req['user_id']])
             
             if res[0] == 'success':
-                jdCookie.objects.create(id=req['user_id'], cookie=json.dumps(res[1]))
+                jdCookie.objects.create(
+                    user_id=user,
+                    cookie=json.dumps(res[1]))
                 response['message'] = '扫码成功'
             elif res[0] == 'fail':
                 jd_map[req['user_id']] = res[1]
@@ -155,12 +149,14 @@ def Login(request):
         elif req['method'] == 'vph_login':
             if req['user_id'] not in vph_map:
                 bro = avoid_check()
-                bro.get('https://category.vph.com/suggest.php?keyword=1')
+                bro.get('https://category.vip.com/suggest.php?keyword=1')
                 res = vph_login(bro)
             else:
                 res = vph_login(vph_map[req['user_id']])
             if res[0] == 'success':
-                vphCookie.objects.create(user_id=req['user_id'], cookie=json.dumps(res[1]))
+                vphCookie.objects.create(
+                    user_id=user,
+                    cookie=json.dumps(res[1]))
                 response['message'] = '扫码成功'
             elif res[0] == 'fail':
                 vph_map[req['user_id']] = res[1]
@@ -175,7 +171,9 @@ def Login(request):
             else:
                 res = sn_login(sn_map[req['user_id']])
             if res[0] == 'success':
-                snCookie.objects.create(user_id=req['user_id'], cookie=json.dumps(res[1]))
+                snCookie.objects.create(
+                    user_id=user,
+                    cookie=json.dumps(res[1]))
                 response['message'] = '扫码成功'
             elif res[0] == 'fail':
                 sn_map[req['user_id']] = res[1]
@@ -191,9 +189,10 @@ def GoodSearch(request):
     response={}
     req = json.loads(request.body)
     user_id = req['user_id']
+    user=User.objects.get(user_id=user_id)
     if request.method == 'POST':
         if req['method'] == 'jd_search':
-            jd_cookie = jdCookie.objects.get(id=user_id)
+            jd_cookie = jdCookie.objects.get(user_id=user)
             cookies = json.loads(jd_cookie.cookie)
             if req['user_id'] not in jd_map:
                 bro = avoid_check()
@@ -206,8 +205,8 @@ def GoodSearch(request):
             response['products'], jd_map[user_id] = \
                 jd_crawler(req['name'], bro)
             response['message'] = 'success'
-        elif req['method'] == 'vip_search':
-            vph_cookie = vphCookie.objects.get(id=user_id)
+        elif req['method'] == 'vph_search':
+            vph_cookie = vphCookie.objects.get(user_id=user)
             cookies = json.loads(vph_cookie.cookie)
             if req['user_id'] not in vph_map:
                 bro = avoid_check()
@@ -215,14 +214,14 @@ def GoodSearch(request):
                 for cookie in cookies:
                     cookie['domain'] = '.vip.com'
                     bro.add_cookie(cookie)
-                #sleep(3)
+                sleep(3)
             else:
                 bro = vph_map[user_id]
             response['products'], vph_map[user_id] =\
                 vph_crawler(req['name'], bro)
             response['message'] = 'success'
         elif req['method'] == 'sn_search':
-            sn_cookie = snCookie.objects.get(user_id=req['user_id'])
+            sn_cookie = snCookie.objects.get(user_id=user)
             cookies = json.loads(sn_cookie.cookie)
             if req['user_id'] not in sn_map:
                 bro = avoid_check()
@@ -235,4 +234,139 @@ def GoodSearch(request):
                 sn_crawler(req['name'], bro)
             response['message'] = 'success'
         return JsonResponse(response)
+
+@csrf_exempt
+def StarProduct(request):
+    response={}
+    req = json.loads(request.body)
+    user_id = req['user_id']
+    product = req['product']
+    productName=req['productname']
+    try:
+        user=User.objects.get(user_id=user_id)
+        good=Goods.objects.create(
+            good_name=productName,
+            good_description=product['title'],
+            good_pic=product['img'],
+            good_link=product['link'],
+            good_platform=product['platform']
+        )
+        good.save()
+        user_good=User_good.objects.create(
+            user_id=user,
+            good_id=good
+        )
+        user_good.save()
+        log=Log.objects.create(
+            good_id=good,
+            timestamp=product['grab_time'],
+            prise=product['price']
+        )
+        log.save()
+        response['message'] = 'success'
+
+    except Exception as e:
+        response['message'] = 'fail'
+        response['error'] = str(e)
+    return JsonResponse(response)
+
+@csrf_exempt
+def UnstarProduct(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        user_id = body.get('user_id')
+        good_id = body.get('good_id')
+        print(good_id)
+        try:
+            user = User.objects.get(user_id=user_id)
+            good = Goods.objects.get(good_id=good_id)
+            record = User_good.objects.filter(
+                user_id=user,
+                good_id=good
+            ).first()   
+            if record:
+                record.delete()
+                exists=User_good.objects.filter(good_id=good_id).exists()
+                if not exists:
+                    good.delete()
+                return JsonResponse({'message': 'success'})
+            else:
+                return JsonResponse({'error': 'Record not found'}, status=404)
+                
+        except User.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        except Goods.DoesNotExist:
+            return JsonResponse({'error': 'Good not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+            
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+def UserInfo(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        user_id = body.get('user_id')
+        user=User.objects.get(user_id=user_id)
+        return JsonResponse({'user_id':user.user_id,'username':user.username,'email':user.email,'phone':user.phone})
+    else:
+        return JsonResponse({'error': 'Unknown error'}, status=400)
+    
+@csrf_exempt
+def UserStats(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        user_id = body.get('user_id')
+        user=User.objects.get(user_id=user_id)
+        goods=User_good.objects.filter(user_id=user).values_list('good_id',flat=True)
+        good_count=len(goods)
+        jd_count=0
+        vph_count=0
+        sn_count=0
+        for good_id in goods:
+            good=Goods.objects.get(good_id=good_id)
+            if(good.good_platform=='京东'):
+                jd_count+=1
+            elif(good.good_platform =='唯品会'):
+                vph_count+=1
+            elif(good.good_platform =='苏宁'):
+                sn_count+=1
+        return JsonResponse({'totalGoods':good_count,'jdGoods':jd_count,'vphGoods':vph_count,'snGoods':sn_count})
+    else:
+        return JsonResponse({'error': 'Unknown error'}, status=400)
+
+@csrf_exempt
+def UserEdit(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        user_id = body.get('user_id')
+        user = User.objects.get(user_id=user_id)
+        
+        username = body.get('username')
+        email = body.get('email')
+        phone = body.get('phone')
+        new_password = body.get('newPassword')
+        
+        if(username!=user.username):
+            if User.objects.filter(username=username).exclude(user_id=user_id).exists():
+                return JsonResponse({'error': '用户名已存在'}, status=400)
+            else: 
+                user.username = username
+        if(email!=user.email):
+            if User.objects.filter(email=email).exclude(user_id=user_id).exists():
+                return JsonResponse({'error': '邮箱已被使用'}, status=400)
+            else:
+                user.email = email
+                
+        if(phone!=user.phone):
+            user.phone = phone
+        
+        if new_password:
+            user.password = new_password
+            
+        user.save()
+        return JsonResponse({'message': 'success'})
+    else:
+        return JsonResponse({'error': 'Unknown error'}, status=400)
+
 
