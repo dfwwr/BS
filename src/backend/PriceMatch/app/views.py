@@ -1,7 +1,7 @@
 # views.py
 from django.core.paginator import Paginator
 from django.shortcuts import render
-from .models import Goods,User,User_good,Log,PriceAlert
+from .models import Goods,User,User_good,Log
 from .models import jdCookie,snCookie,vphCookie
 from .serializers import GoodsSerializer
 from django.views.decorators.csrf import csrf_exempt
@@ -283,7 +283,7 @@ def UnstarProduct(request):
             record = User_good.objects.filter(
                 user_id=user,
                 good_id=good
-            ).first()   
+            ).first()
             if record:
                 record.delete()
                 exists=User_good.objects.filter(good_id=good_id).exists()
