@@ -1,6 +1,7 @@
 <template>
   <el-scrollbar height="100%" style="width: 100%; height: 100%">
     <div class="user-container">
+
       <el-card class="user-card">
         <template #header>
           <div class="card-header">
@@ -88,6 +89,27 @@
           </div>
         </div>
       </el-card>
+
+      <div class="logout-section">
+        <el-button 
+          type="danger" 
+          @click="handleLogout"
+          size="large"
+          style="width: 300px"
+        >
+          退出登录
+        </el-button>
+      </div>
+      <div class="logout-section">
+        <el-button 
+          type="danger" 
+          @click="testemail"
+          size="large"
+          style="width: 300px"
+        >
+          邮箱测试
+        </el-button>
+      </div>
     </div>
   </el-scrollbar>
 </template>
@@ -100,7 +122,7 @@ export default {
   data() {
     return {
       editMode: false,
-	  user_id:this.$store.state.user.id,
+	    user_id:this.$store.state.user.id,
       userInfo: {
         username: '',
         email: '',
@@ -185,6 +207,34 @@ export default {
     cancelEdit() {
       this.editMode = false
       this.editForm = { ...this.userInfo, newPassword: '' }
+    },
+    handleLogout() {
+      this.$confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        localStorage.removeItem('user_id')
+        console.log(localStorage)
+        this.user_id = null
+        this.$store.commit('user/RESET_STATE')
+        this.$router.push('/login/user')
+        this.$message.success('已退出登录')
+      }).catch(() => {
+        // 用户取消退出
+      })
+    },
+    testemail(){
+      axios.post('http://127.0.0.1:8000/user/testemail/', {
+        user_id:this.user_id
+      })
+      .then(response => {
+        ElMessage.success('发送成功')
+      })
+      .catch(error => {
+        ElMessage.error('发送失败')
+        console.error(error)
+      })
     }
   }
 }
@@ -258,5 +308,12 @@ export default {
 .stat-label {
   margin-top: 8px;
   color: #606266;
+}
+
+.logout-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
 }
 </style>

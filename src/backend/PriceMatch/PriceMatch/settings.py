@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "app",
 	'corsheaders',
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,16 @@ CORS_ALLOW_HEADERS=('*')
 CORS_ALLOW_CREDENTIALS=True
 CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = "PriceMatch.urls"
+
+# 邮件配置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.qq.com'  # QQ邮箱的SMTP服务器
+EMAIL_PORT = 587  # SMTP服务的端口号
+EMAIL_USE_TLS = True  # 使用TLS安全传输
+EMAIL_HOST_USER = '2219772537@qq.com'  # 你的QQ邮箱
+EMAIL_HOST_PASSWORD = 'esgbepzdkyugdiee'  # 你的QQ邮箱授权码
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+CRONJOBS = [
+    ('0 * * * *', 'app.tasks.check_price_changes')  # 每小时执行一次
+]

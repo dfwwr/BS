@@ -1,7 +1,6 @@
 // import { getToken } from '@/utils/auth'
 const getDefaultState = () => {
 	return {
-	//   token: getToken(),
 	  id: localStorage.getItem('user_id') || null,
 	  name: '',
 	  avatar: '',

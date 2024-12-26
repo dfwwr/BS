@@ -14,9 +14,41 @@ from .vph import vph_login,vph_crawler
 from .sn import sn_login,sn_crawler
 import json
 from time import sleep
+from django.core.mail import send_mail
+from django.conf import settings
+import re
 jd_map={}
 sn_map={}
 vph_map={}
+
+def send_price_alert(user_email, good, current_price,prise):
+    """发送价格提醒邮件"""
+    subject = '商品价格提醒'
+    message = f'''
+    您关注的商品"{good.good_name}"价格发生变化！
+    描述: {good.good_description}
+    原价格: ¥{prise}
+    现价格: ¥{current_price}
+    变动幅度: {((current_price - prise) / prise * 100):.2f}%
+    
+    商品链接: {good.good_link}
+    
+    请及时查看！
+    '''
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user_email],
+            fail_silently=False,
+        )
+        return True
+    except Exception as e:
+        print(f"发送邮件失败: {str(e)}")
+        return False
+
 
 @csrf_exempt
 def GoodsList(request):
@@ -24,7 +56,7 @@ def GoodsList(request):
     if request.method == 'POST':
         body = json.loads(request.body)
         userid = body.get('user_id')
-        good_ids=User_good.objects.filter(user_id=userid).values_list('good_id',flat=True)   
+        good_ids=User_good.objects.filter(user_id=userid).values_list('good_id',flat=True)
         goods_list=[]
         for id in good_ids:
             good=Goods.objects.filter(good_id=id)\
@@ -49,20 +81,50 @@ def Signup(request):
         body = json.loads(request.body)
         username = body.get('username')
         password = body.get('password')
-        email=body.get('email')
-        phone=body.get('phone')
+        email = body.get('email')
+        phone = body.get('phone')
+        
+        # 验证用户名长度
+        if len(username) < 6:
+            return JsonResponse({'error': '用户名长度必须大于6个字符'}, status=400)
+            
+        # 验证密码长度
+        if len(password) < 6:
+            return JsonResponse({'error': '密码长度必须大于6个字符'}, status=400)
+            
+        # 验证邮箱格式
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return JsonResponse({'error': '请输入正确的邮箱地址'}, status=400)
+            
+        # 验证手机号格式（如果提供）
+        if phone:
+            phone_pattern = r'^1[3-9]\d{9}$'
+            if not re.match(phone_pattern, phone):
+                return JsonResponse({'error': '请输入正确的手机号码'}, status=400)
+        
+        # 检查用户名是否已存在
         if User.objects.filter(username=username).exists():
-                return JsonResponse({'error': 'Username already exists.'}, status=400)
+            return JsonResponse({'error': '用户名已存在'}, status=400)
+            
+        # 检查邮箱是否已存在
         if User.objects.filter(email=email).exists():
-                return JsonResponse({'error': 'Email already exists.'}, status=400)
-        if User.objects.filter(phone=phone).exists():
-                return JsonResponse({'error': 'Phone already exists.'}, status=400)
-        user = User(username=username, password=password,
-                                 email=email,phone=phone)
+            return JsonResponse({'error': '邮箱已被使用'}, status=400)
+            
+        # 创建新用户
+        user = User(
+            username=username,
+            password=password,
+            email=email,
+            phone=phone
+        )
         user.save()
-        return JsonResponse({'message': 'User created successfully    Jump to login page after 1 seconds'})
+        
+        return JsonResponse({
+            'message': 'User created successfully. Jump to login page after 1 seconds'
+        })
     else:
-        return JsonResponse({'message': 'Invalid request method'})
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 @csrf_exempt
 def Signin(request):
@@ -80,7 +142,7 @@ def Signin(request):
         return JsonResponse({'message': 'Login successful','user_id':user.user_id})
     else:
         return JsonResponse({'message': 'Invalid request method'})
-
+    
 @csrf_exempt
 def CheckLogin(request):
     response = {}
@@ -244,14 +306,18 @@ def StarProduct(request):
     productName=req['productname']
     try:
         user=User.objects.get(user_id=user_id)
-        good=Goods.objects.create(
-            good_name=productName,
-            good_description=product['title'],
-            good_pic=product['img'],
-            good_link=product['link'],
-            good_platform=product['platform']
-        )
-        good.save()
+        exists=Goods.objects.filter(good_link=product['link']).exists()
+        if exists:
+            good=Goods.objects.get(good_link=product['link'])
+        else:
+            good=Goods.objects.create(
+                good_name=productName,
+                good_description=product['title'],
+                good_pic=product['img'],
+                good_link=product['link'],
+                good_platform=product['platform']
+            )
+            good.save()
         user_good=User_good.objects.create(
             user_id=user,
             good_id=good
@@ -259,7 +325,7 @@ def StarProduct(request):
         user_good.save()
         log=Log.objects.create(
             good_id=good,
-            timestamp=product['grab_time'],
+            timestamp=timezone.now(),
             prise=product['price']
         )
         log.save()
@@ -301,6 +367,17 @@ def UnstarProduct(request):
             return JsonResponse({'error': str(e)}, status=400)
             
     return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@csrf_exempt
+def PriceHistory(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        good_id = body.get('good_id')
+        good=Goods.objects.get(good_id=good_id)
+        logs = Log.objects.filter(good_id=good).order_by('timestamp').values('timestamp', 'prise')
+        return JsonResponse({'logs': list(logs)})
+    else:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @csrf_exempt
 def UserInfo(request):
@@ -369,4 +446,44 @@ def UserEdit(request):
     else:
         return JsonResponse({'error': 'Unknown error'}, status=400)
 
+@csrf_exempt
+def TestEmail(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        user_id = body.get('user_id')
+        user=User.objects.get(user_id=user_id)
+        subject='测试邮件'
+        message='测试邮件'
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        return JsonResponse({'message': 'success'})
+
+@csrf_exempt
+def PriceHistoryTest(request):
+    if request.method == 'POST':
+        body = json.loads(request.body)
+        good_id = body.get('good_id')
+        good=Goods.objects.get(good_id=good_id)
+        latest_log=Log.objects.filter(good_id=good).order_by('-timestamp').first()
+        latest_timestamp=latest_log.timestamp
+        latest_prise=latest_log.prise
+        for i in range(3):
+            latest_timestamp=latest_timestamp-timedelta(hours=8)
+            latest_prise=latest_prise-10
+            log=Log.objects.create(
+                good_id=good,
+                timestamp=latest_timestamp,
+                prise=latest_prise
+            )
+            log.save()
+
+        logs = Log.objects.filter(good_id=good).order_by('timestamp').values('timestamp', 'prise')
+        return JsonResponse({'logs': list(logs)})
+    else:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
 

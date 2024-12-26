@@ -22,18 +22,18 @@
             </div>
           </div>
           <el-divider/>
-          <el-form label-position="right" label-width="100px" style=" font-weight: bolder; font-size: 10px">
-            <el-form-item label="用户名"  style = "margin-top: 5px;">
-              <el-input v-model="account" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
+          <el-form :model="form" :rules="rules" label-position="right" label-width="100px" style=" font-weight: bolder; font-size: 10px">
+            <el-form-item label="用户名" prop="username" style = "margin-top: 5px;">
+              <el-input v-model="form.username" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
             </el-form-item>
-            <el-form-item label="密码" style = "margin-top: 5px;">
-              <el-input v-model="password" style="width: 12.5vw; margin-left: 1rem" type="password" maxlength="20" clearable/>
+            <el-form-item label="密码" prop="password" style = "margin-top: 5px;">
+              <el-input v-model="form.password" style="width: 12.5vw; margin-left: 1rem" type="password" maxlength="20" clearable/>
             </el-form-item>
-            <el-form-item label="电话号码"  style = "margin-top: 5px;">
-              <el-input v-model="phone" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
+            <el-form-item label="电话号码" prop="phone" style = "margin-top: 5px;">
+              <el-input v-model="form.phone" style="width: 12.5vw; margin-left: 1rem" maxlength="18" clearable/>
             </el-form-item>
-            <el-form-item label="邮箱" style = "margin-top: 5px;">
-              <el-input v-model="email" style="width: 12.5vw; margin-left: 1rem" maxlength="25" clearable/>
+            <el-form-item label="邮箱" prop="email" style = "margin-top: 5px;">
+              <el-input v-model="form.email" style="width: 12.5vw; margin-left: 1rem" maxlength="25" clearable/>
             </el-form-item>
 
             <!-- 卡片操作 -->
@@ -56,39 +56,69 @@ import axios from "axios";
 import { ElMessage } from "element-plus";
 export default {
   data() {
+    const validateUsername = (rule, value, callback) => {
+      if (value.length < 6) {
+        callback(new Error('用户名长度必须大于6个字符'))
+      } else {
+        callback()
+      }
+    }
+
+    const validatePassword = (rule, value, callback) => {
+      if (value.length < 6) {
+        callback(new Error('密码长度必须大于6个字符'))
+      } else {
+        callback()
+      }
+    }
+
     return {
-      account: "",
-      password: "",
-      email: "",
-      phone: "",
-    };
+      form: {
+        username: "",
+        password: "",
+        email: "",
+        phone: "",
+      },
+      rules: {
+        username: [
+          { required: true, message: '请输入用户名', trigger: 'blur' },
+          { validator: validateUsername, trigger: 'blur' }
+        ],
+        password: [
+          { required: true, message: '请输入密码', trigger: 'blur' },
+          { validator: validatePassword, trigger: 'blur' }
+        ],
+        email: [
+          { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+          { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+        ],
+      }
+    }
   },
   methods: {
-    login(){
+    login() {
       window.location.href = "/login/user";
     },
     handle() {
       axios
         .post("http://127.0.0.1:8000/user/sign_up/", {
-          username: this.account,
-          password: this.password,
-          email: this.email,
-          phone: this.phone,
+          username: this.form.username,
+          password: this.form.password,
+          email: this.form.email,
+          phone: this.form.phone,
         })
         .then((response) => {
-			console.log(response)
-			ElMessage.success(response.data.message);
-          	setTimeout(() => {
-        	window.location.href = "/login/user"; // 跳转到指定页面
-   			}, 1000);
+          console.log(response)
+          ElMessage.success(response.data.message);
+          setTimeout(() => {
+            window.location.href = "/login/user"; // 跳转到指定页面
+          }, 1000);
         })
         .catch((error) => {
           ElMessage.error(error.response.data.error);
         });
-    },
-  },
-  mounted() {
-  },
+    }
+  }
 };
 </script>
   

@@ -74,9 +74,7 @@ export default {
         })
         .then((response) => {
           const{data}=response
-          console.log(data)
           localStorage.setItem('user_id',data.user_id)
-          console.log(data)
           this.$store.commit('SET_ID', data.user_id)
           window.location.href ="/good";//到online_user.html
         })

@@ -59,16 +59,35 @@
 					<div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
 					<a :href="product['good_link']" target="_blank" class="product-detail-link">查看详情</a>		
 					<el-button
+						type="info"
+						size="small"
+						@click="showPriceHistory(product)"
+						style="margin-left: 10px;">
+						历史价格</el-button>
+					<el-button
 					type="primary"
 					size="small"
 					@click="unstarProduct(product)"
 					>取消收藏</el-button>
 					</div>
-					
+					<el-button
+						type="info"
+						size="small"
+						@click="showPriceHistorytest(product)"
+						style="margin-left: 10px;">
+						历史价格测试</el-button>
 				</div>
 				</el-card>
 			</el-col>
 			</el-row>
+			<el-dialog
+				v-model=priceHistoryVisible
+				title="历史价格走势"
+				width="80%">
+				<div class="price-chart" style="height: 600px; padding: 20px;">
+					<v-chart :option="chartOption" autoresize />
+				</div>
+			</el-dialog>
 			<button @click="prevPage" :disabled="currentPage === 1">上一页</button>
 			<button @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
 			<span>当前页: {{ currentPage }} / {{ totalPages }}</span>
@@ -83,9 +102,17 @@
   import axios from "axios";
   import { ElMessage } from "element-plus";
   import { StarFilled } from '@element-plus/icons-vue'
+  import VChart from 'vue-echarts'
+  import ECharts from 'vue-echarts'
+  import { use } from 'echarts/core'
+  import { CanvasRenderer } from 'echarts/renderers'
+  import { LineChart } from 'echarts/charts'
+  import { TitleComponent, TooltipComponent, GridComponent } from 'echarts/components'
+  
   export default {
 	components:{
 		StarFilled,
+		VChart
 	},
 	created() {
 		this.user_id = this.$store.state.user.id;
@@ -134,6 +161,28 @@
 		allPlatforms: ['京东', '唯品会', '苏宁'],
 		selectedPlatforms: [],
 		loading: null,
+		priceHistoryVisible: false,
+		chartOption: {
+			title: {text: '商品价格走势'},
+			tooltip: {trigger: 'axis',
+			formatter: function(params) {
+			const date = new Date(params[0].value[0]);
+			return `${date.toLocaleDateString()}<br/>价格：¥${params[0].value[1]}`;
+			} },
+			xAxis: {
+			type: 'time',
+			name: '日期'
+			},
+			yAxis: {
+			type: 'value',
+			name: '价格(元)'
+			},
+			series: [{
+				data: [],
+				type: 'line',
+				smooth: true
+				}]
+		},
     };
 	},
 
@@ -160,8 +209,6 @@
 			this.sortType = type;
 		},
 		fetchGoods() {
-			console.log("fetchGoods")
-			console.log(this.user_id)
 			if(this.search_goods==false){
 			axios.post("http://127.0.0.1:8000/star/Goods/",{
 				user_id:this.user_id
@@ -175,20 +222,6 @@
 			});
 			}
 		},
-		star_product(product){
-			axios.post("http://127.0.0.1:8000/good/star_product", { // 后端URL
-			user_id: this.user_id,
-			product:product,
-			productname:this.productName
-			})
-			.then((response) => {
-				this.$message.success('成功查询')
-			})
-			.catch((error) => {
-			console.log(error)
-			ElMessage.error(error.response.data.error);
-			});
-		},
 		unstarProduct(product){
 			axios.post("http://127.0.0.1:8000/good/unstar_product/", {
 				user_id: this.user_id,
@@ -201,9 +234,44 @@
 			.catch((error) => {
 				ElMessage.error(error.response.data.error);
 			});
+		},
+		showPriceHistory(product) {
+
+			axios.post("http://127.0.0.1:8000/good/price_history/", {
+				good_id: product['good_id']
+			})
+			.then((response) => {
+				this.priceHistoryVisible = true;
+				console.log(this.priceHistoryVisible)
+				console.log(response.data)
+				this.chartOption.series[0].data = response.data.logs.map(log => [
+					new Date(log.timestamp),
+					log.prise
+				]);
+				console.log(this.chartOption.series[0].data)
+			})
+			.catch((error) => {
+				ElMessage.error(error.response.data.error);
+			});
+		},
+		showPriceHistorytest(product){
+			axios.post("http://127.0.0.1:8000/good/price_history_test/", {
+				good_id: product['good_id']
+			})
+			.then((response) => {
+				this.priceHistoryVisible = true;
+				console.log(this.priceHistoryVisible)
+				console.log(response.data)
+				this.chartOption.series[0].data = response.data.logs.map(log => [
+					new Date(log.timestamp),
+					log.prise
+				]);
+				console.log(this.chartOption.series[0].data)
+			})
+			.catch((error) => {
+				ElMessage.error(error.response.data.error);
+			});
 		}
-
-
 	},
 	mounted() {
 	},
@@ -393,5 +461,20 @@
 	  right: 0;
 	}
 
+}
+
+.price-chart {
+    width: 100%;
+    min-height: 600px;
+    background: #fff;
+    border-radius: 4px;
+}
+
+:deep(.el-dialog) {
+    min-width: 1000px;  /* 设置更大的最小宽度 */
+}
+
+:deep(.el-dialog__body) {
+    padding: 20px;  /* 增加内边距 */
 }
 </style>

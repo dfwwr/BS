@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 # Create your models here.
 class Goods(models.Model):
@@ -26,7 +28,7 @@ class User(models.Model):
 class Log(models.Model):
     log_id=models.AutoField(primary_key=True)
     good_id=models.ForeignKey(Goods,on_delete=models.CASCADE)
-    timestamp=models.DateTimeField(auto_now_add=True)
+    timestamp=models.DateTimeField(auto_now_add=False,null=False)
     prise=models.FloatField(null=False)
     def __str__(self):
         return self.good_id.good_name
