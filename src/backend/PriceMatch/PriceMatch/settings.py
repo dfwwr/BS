@@ -107,7 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Shanghai"
 
 USE_I18N = True
 
@@ -138,7 +138,6 @@ EMAIL_USE_TLS = True  # 使用TLS安全传输
 EMAIL_HOST_USER = '2219772537@qq.com'  # 你的QQ邮箱
 EMAIL_HOST_PASSWORD = 'esgbepzdkyugdiee'  # 你的QQ邮箱授权码
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
 CRONJOBS = [
-    ('0 * * * *', 'app.tasks.check_price_changes')  # 每小时执行一次
+    ('0 */8 * * *', 'app.tasks.check_price_changes')  # 每8小时执行一次
 ]

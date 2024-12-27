@@ -5,7 +5,10 @@ import { getToken } from '@/utils/auth'
 
 // create an axios instance
 const service = axios.create({
-  baseURL: 'http://127.0.0.1:8000/',  // API 基础URL
+  // 根据环境变量设置不同的 baseURL
+  baseURL: process.env.NODE_ENV === 'production' 
+    ? 'http://backend:8000/'  // Docker 环境
+    : 'http://127.0.0.1:8000/',  // 开发环境
   timeout: 5000
 })
 

@@ -450,7 +450,6 @@
 			axios.post('http://127.0.0.1:8000/search/goodsearch/',
 			 {method: 'sn_search', user_id:this.user_id, name:this.productName}),
 		]).then(responses => {
-			this.good_search=true
 			this.products = []
 			responses.forEach(response => {
 			if (response.status === 'fulfilled') {

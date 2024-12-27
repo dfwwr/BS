@@ -3,15 +3,14 @@ from django.core.paginator import Paginator
 from django.shortcuts import render
 from .models import Goods,User,User_good,Log
 from .models import jdCookie,snCookie,vphCookie
-from .serializers import GoodsSerializer
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from .tools import avoid_check
-from .jd import jd_login,jd_crawler
-from .vph import vph_login,vph_crawler
-from .sn import sn_login,sn_crawler
+from .jd import jd_login,jd_fatch
+from .vph import vph_login,vph_fatch
+from .sn import sn_login,sn_fatch
 import json
 from time import sleep
 from django.core.mail import send_mail
@@ -265,7 +264,7 @@ def GoodSearch(request):
                 bro = jd_map[user_id]
 
             response['products'], jd_map[user_id] = \
-                jd_crawler(req['name'], bro)
+                jd_fatch(req['name'], bro)
             response['message'] = 'success'
         elif req['method'] == 'vph_search':
             vph_cookie = vphCookie.objects.get(user_id=user)
@@ -280,7 +279,7 @@ def GoodSearch(request):
             else:
                 bro = vph_map[user_id]
             response['products'], vph_map[user_id] =\
-                vph_crawler(req['name'], bro)
+                vph_fatch(req['name'], bro)
             response['message'] = 'success'
         elif req['method'] == 'sn_search':
             sn_cookie = snCookie.objects.get(user_id=user)
@@ -293,7 +292,7 @@ def GoodSearch(request):
             else:
                 bro = sn_map[user_id]
             response['products'], sn_map[user_id] =\
-                sn_crawler(req['name'], bro)
+                sn_fatch(req['name'], bro)
             response['message'] = 'success'
         return JsonResponse(response)
 
@@ -452,15 +451,9 @@ def TestEmail(request):
         body = json.loads(request.body)
         user_id = body.get('user_id')
         user=User.objects.get(user_id=user_id)
-        subject='测试邮件'
-        message='测试邮件'
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        meg=User_good.objects.filter(user_id=user).first()
+        good=Goods.objects.get(good_id=meg.good_id.good_id)
+        send_price_alert(user.email, good, 100, 100)
         return JsonResponse({'message': 'success'})
 
 @csrf_exempt

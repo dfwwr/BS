@@ -3,9 +3,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import Goods, Log, User_good,User
 from datetime import datetime
-from .jd import jd_crawler
-from .vph import vph_crawler
-from .sn import sn_crawler
+from .jd import jd_fatch
+from .vph import vph_fatch
+from .sn import sn_fatch
 from .tools import avoid_check
 import json
 from .views import send_price_alert
@@ -24,13 +24,13 @@ def check_price_changes():
             bro = avoid_check()
             if good.good_platform == '京东':
                 bro.get('https://www.jd.com/')
-                products, _ = jd_crawler(good.good_name, bro)
+                products, _ = jd_fatch(good.good_name, bro)
             elif good.good_platform == '唯品会':
                 bro.get('https://www.vip.com/')
-                products, _ = vph_crawler(good.good_name, bro)
+                products, _ = vph_fatch(good.good_name, bro)
             elif good.good_platform == '苏宁':
                 bro.get('https://www.suning.com/')
-                products, _ = sn_crawler(good.good_name, bro)
+                products, _ = sn_fatch(good.good_name, bro)
             else:
                 continue
                 
@@ -56,8 +56,7 @@ def check_price_changes():
                 # 获取关注该商品的所有用户
                 user_goods = User_good.objects.filter(good_id=good)
                 for user_good in user_goods:
-                    user_id = user_good.user_id
-                    user=User.objects.get(id=user_id)
+                    user = User.objects.get(user_id=user_good.user_id.user_id)
                     # 发送邮件通知
                     send_price_alert(user.email, good, current_price,latest_log.prise)
                         

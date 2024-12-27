@@ -7,93 +7,96 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from .tools import draw_num
 
 from .tools import avoid_check, draw_num
 
-def jd_login(bro):
+def jd_login(web):
     try:
         # 等待用户扫描并登录，检查“退出登录”是否出现
-        bro.find_element('xpath', '//*[@id="J_user"]/div/div[1]/div/p[2]/span/a[2]')
-        # 存储cookie
-        cookies = bro.get_cookies()
-        # 关闭浏览器
-        bro.quit()
+        web.find_element('xpath', '//*[@id="J_user"]/div/div[1]/div/p[2]/span/a[2]')
+        cookies = web.get_cookies()
+        web.quit()
         return 'success', cookies
     except NoSuchElementException:
-        # 处理未找到元素情况
         try:
-            qrcode_btn = bro.find_element('xpath', '//*[@id="kbCoagent"]/ul/li[2]/a')
+            qrcode_btn = web.find_element('xpath', '//*[@id="kbCoagent"]/ul/li[2]/a')
             qrcode_btn.click()
         except NoSuchElementException:
             print('已在二维码页面')
-        bro.refresh()
+        web.refresh()
         try:
-            qrcode_img = bro.find_element('xpath', "//*[@id='tpl_for_page']/span[1]/div[1]/div[4]/div[1]/img").get_attribute('src')
-            return 'fail', bro, qrcode_img
+            qrcode_img = web.find_element('xpath', "//*[@id='tpl_for_page']/span[1]/div[1]/div[4]/div[1]/img").get_attribute('src')
+            return 'fail', web, qrcode_img
         except NoSuchElementException:
-            return 'fail', bro, ''
+            return 'fail', web, ''
 
-def jd_crawler(name, bro):
-    goods_info = []
-    # # 无头浏览与规避检测
-    # bro = avoid_check()
-    # # 加载cookie
-    # bro.get('https://jd.com/')
-    # for cookie in cookies:
-    #     bro.add_cookie(cookie)
-    # 标签定位
-    search_input = bro.find_element('id', value='key')
-    # 搜索关键词
+def jd_fatch(key, web):
+    items_data = []
+
+    search_input = web.find_element('id', value='key')
     search_input.clear()
-    search_input.send_keys(name)
-    # 点击搜索按钮
-    btn = bro.find_element('class name', value='button')
-    btn.click()
+    search_input.send_keys(key)
+    
+    # 点击搜索
+    search_btn = web.find_element('class name', value='button')
+    search_btn.click()
+    
+    # 页面滚动加载
+    sleep(1.5)
+    web.execute_script('window.scrollTo(0,document.body.scrollHeight)')
     sleep(1)
-    # 执行一组js程序滚动页面置底
-    bro.execute_script('window.scrollTo(0,document.body.scrollHeight)')
-    sleep(1)
-    # 数据解析
-    tree = etree.HTML(bro.page_source)
-    goods_li_list = (tree.xpath('//div[@id="J_goodsList"]/ul/li'))
-    i = 0
-    for li in goods_li_list:
-        i += 1
-        if i > 20:
+
+    # 解析页面数据
+    page_content = etree.HTML(web.page_source)
+    items = page_content.xpath('//div[@id="J_goodsList"]/ul/li')
+    
+    # 提取商品信息
+    count = 0
+    for item in items:
+        count += 1
+        if count > 20:
             break
-        # 图片
-        goods_img = li.xpath('.//div[@class="p-img"]/a/img/@src')
-        if not goods_img:
-            goods_img = li.xpath('.//div[@class="p-img"]/a/img/@data-lazy-img')
-        goods_img = 'https:' + goods_img[0]
-        # 商品标题
-        goods_title = ''.join(li.xpath('.//div[@class="p-name p-name-type-2"]/a/em//text()'))
-        # 商品价格
-        goods_price = li.xpath('.//div[@class="p-price"]/strong/i/text()')[0]
-        if draw_num(goods_price) == '':
+            
+        # 获取商品图片
+        item_img = item.xpath('.//div[@class="p-img"]/a/img/@src')
+        if not item_img:
+            item_img = item.xpath('.//div[@class="p-img"]/a/img/@data-lazy-img')
+        item_img = 'https:' + item_img[0]
+        
+        # 获取商品标题
+        item_title = ''.join(item.xpath('.//div[@class="p-name p-name-type-2"]/a/em//text()'))
+        
+        # 获取商品价格
+        item_price = item.xpath('.//div[@class="p-price"]/strong/i/text()')[0]
+        if draw_num(item_price) == '':
             continue
-        # 销量
-        goods_sales = li.xpath('.//div[@class="p-commit"]/strong/a/text()')
-        if not goods_sales:
-            goods_sales.append('未知')
-        goods_sales = goods_sales[0].strip()
-        # 店铺名
-        goods_shop = li.xpath('.//div[@class="p-shop"]/span/a/@title')
-        if not goods_shop:
-            goods_shop.append('未知')
-        goods_shop = goods_shop[0]
-        # 商品链接
-        goods_link = 'https:' + ''.join(li.xpath('.//div[@class="p-name p-name-type-2"]/a/@href'))
-        # 平台
-        goods_platform = '京东'
-        goods_info.append({
-            'img': goods_img,
-            'title': goods_title,
-            'price': float(goods_price),
-            'sales': goods_sales,
-            'shop': goods_shop,
-            'platform': goods_platform,
-            'link': goods_link,
+            
+        # 获取销量信息
+        item_sales = item.xpath('.//div[@class="p-commit"]/strong/a/text()')
+        if not item_sales:
+            item_sales.append('未知')
+        item_sales = item_sales[0].strip()
+        
+        # 获取店铺信息
+        item_shop = item.xpath('.//div[@class="p-shop"]/span/a/@title')
+        if not item_shop:
+            item_shop.append('未知')
+        item_shop = item_shop[0]
+        
+        # 获取商品链接
+        item_link = 'https:' + ''.join(item.xpath('.//div[@class="p-name p-name-type-2"]/a/@href'))
+        
+        # 组装商品数据
+        items_data.append({
+            'img': item_img,
+            'title': item_title,
+            'price': float(item_price),
+            'sales': item_sales,
+            'shop': item_shop,
+            'platform': '京东商城',
+            'link': item_link,
             'grab_time': time.strftime('%Y-%m-%d %H:%M', time.localtime())
         })
-    return goods_info, bro
+        
+    return items_data, web

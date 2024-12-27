@@ -1,5 +1,9 @@
 from msedge.selenium_tools import EdgeOptions, Edge
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import os
+
+
 
 # 提取字符串中的连续数字
 def draw_num(str_data):
@@ -22,7 +26,13 @@ def avoid_check():
     option.use_chromium = True
     option.add_experimental_option('excludeSwitches', ['enable-automation'])
     
-    # 添加忽略证书错误的选项
+    # 添加请求头
+    option.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0')
+    option.add_argument('accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7')
+    option.add_argument('accept-encoding=gzip, deflate, br')
+    option.add_argument('accept-language=zh-CN,zh;q=0.9')
+    
+    # 添加其他选项
     option.add_argument('--ignore-certificate-errors')
     option.add_argument('--ignore-ssl-errors')
     option.add_argument('--headless')
@@ -39,3 +49,4 @@ def avoid_check():
         options=option
     )
     return bro
+

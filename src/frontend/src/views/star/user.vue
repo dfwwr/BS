@@ -134,6 +134,7 @@
 		const [minPrice, maxPrice] = this.priceRange.map(range => range === '' ? null : parseFloat(range))
 		// 根据平台、价格范围和排序类型过滤和排序产品
 		let filteredAndSortedProducts = this.products.filter(product =>
+			selectedPlatforms.includes(product['good_platform']) &&
 			(minPrice === null || product['price'] >= minPrice) &&
 			(maxPrice === null || product['price'] <= maxPrice)
 		)

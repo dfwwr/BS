@@ -24,5 +24,9 @@ export default defineConfig({
         assetFileNames: "static/[ext]/name-[hash].[ext]"
       }
     },
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5173
   }
 })

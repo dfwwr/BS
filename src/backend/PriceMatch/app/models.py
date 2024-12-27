@@ -9,7 +9,7 @@ class Goods(models.Model):
     good_description=models.TextField(null=True)
     good_scale=models.CharField(max_length=255,null=False)
     good_type=models.CharField(max_length=255,null=False)
-    good_pic=models.ImageField(upload_to='./images/',null=True)
+    good_pic=models.CharField(max_length=255,null=True)
     good_link=models.CharField(max_length=255,null=True)
     good_platform=models.CharField(max_length=255,null=True)
     def __str__(self):
