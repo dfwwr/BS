@@ -27,6 +27,10 @@ services:
       - DJANGO_SETTINGS_MODULE=PriceMatch.settings
       - PYTHONUNBUFFERED=1
     container_name: backend
+    command: >
+      sh -c "python ./PriceMatch/manage.py migrate &&
+             python ./PriceMatch/manage.py crontab add &&
+             python ./PriceMatch/manage.py runserver 0.0.0.0:8000"
 
 networks:
   app-network:
