@@ -184,33 +184,27 @@
   	},
 	computed: {
 		totalPages() {
-            return Math.ceil(this.products.length / this.pageSize);
-        },
-        paginatedData() {
-            const start = (this.currentPage - 1) * this.pageSize;
-            return this.products.slice(start, start + this.pageSize);
+            return Math.ceil(this.filteredAndSortedProducts.length / this.pageSize);
         },
 		filteredProducts() {
-		// 将 priceRange 中的空字符串转换为 null 以表示无限制
-		// 如果没有选择任何平台，则默认选择所有平台
 		const selectedPlatforms = this.selectedPlatforms.length === 0 ? this.allPlatforms : this.selectedPlatforms
 		// 将 priceRange 中的空字符串转换为 null 以表示无限制
 		const [minPrice, maxPrice] = this.priceRange.map(range => range === '' ? null : parseFloat(range))
 		// 根据平台、价格范围和排序类型过滤和排序产品
-		console.log(this.products)
-		let filteredAndSortedProducts = this.products.filter(product =>
+		this.filteredAndSortedProducts = this.products.filter(product =>
 			selectedPlatforms.includes(product.platform) &&
 			(minPrice === null || product.price >= minPrice) &&
 			(maxPrice === null || product.price <= maxPrice)
 		)
+
 		if (this.sortType === 'low') {
-			filteredAndSortedProducts = filteredAndSortedProducts.sort((a, b) => a.price - b.price)
+			this.filteredAndSortedProducts = this.filteredAndSortedProducts.sort((a, b) => a.price - b.price)
 		} else if (this.sortType === 'high') {
-			filteredAndSortedProducts = filteredAndSortedProducts.sort((a, b) => b.price - a.price)
+			this.filteredAndSortedProducts = this.filteredAndSortedProducts.sort((a, b) => b.price - a.price)
 		}
 		const start = (this.currentPage - 1) * this.pageSize;
 		const end = this.currentPage * this.pageSize;
-		return filteredAndSortedProducts.slice(start, end)
+		return this.filteredAndSortedProducts.slice(start, end)
 		},
 	},
 	watch: {
@@ -276,6 +270,7 @@
 		pageSize: 8,
       	cards: [],
 		products: [],
+		filteredAndSortedProducts:[],
 		sortType: '',
 		priceRange: ['', ''],
 		allPlatforms: ['京东', '唯品会', '苏宁'],
@@ -441,6 +436,7 @@
 		})
 		},
 		good_search() {
+		this.products = []
 		this.$message.success('查询中，请稍等')
 		Promise.allSettled([
 			axios.post('http://127.0.0.1:8000/search/goodsearch/', 
@@ -450,7 +446,6 @@
 			axios.post('http://127.0.0.1:8000/search/goodsearch/',
 			 {method: 'sn_search', user_id:this.user_id, name:this.productName}),
 		]).then(responses => {
-			this.products = []
 			responses.forEach(response => {
 			if (response.status === 'fulfilled') {
 				let res = response.value.data
@@ -475,6 +470,7 @@
 			}
 		},
 		sortProducts(type) {
+			this.filteredAndSortedProducts = []
 			this.sortType = type;
 		},
 		star_product(product){

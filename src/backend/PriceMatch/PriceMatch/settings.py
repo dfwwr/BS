@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-v0jfx*e4xgedp)km^)kl%)e0gp1)h6x=pmv6kmse8au$8o^@*b
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -141,3 +141,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 CRONJOBS = [
     ('0 */8 * * *', 'app.tasks.check_price_changes')  # 每8小时执行一次
 ]
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+TIMEOUT = 60

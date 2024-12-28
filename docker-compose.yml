@@ -8,6 +8,8 @@ services:
     volumes:
       - ./src/frontend:/app
       - /app/node_modules
+    networks:
+      - app-network
     depends_on:
       - backend
 
@@ -19,3 +21,13 @@ services:
       - "8000:8000"
     volumes:
       - ./src/backend:/app
+    networks:
+      - app-network
+    environment:
+      - DJANGO_SETTINGS_MODULE=PriceMatch.settings
+      - PYTHONUNBUFFERED=1
+    container_name: backend
+
+networks:
+  app-network:
+    driver: bridge

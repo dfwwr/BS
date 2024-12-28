@@ -1,4 +1,10 @@
 # views.py
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import os
 from django.core.paginator import Paginator
 from django.shortcuts import render
 from .models import Goods,User,User_good,Log
@@ -7,7 +13,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
-from .tools import avoid_check
 from .jd import jd_login,jd_fatch
 from .vph import vph_login,vph_fatch
 from .sn import sn_login,sn_fatch
@@ -19,6 +24,49 @@ import re
 jd_map={}
 sn_map={}
 vph_map={}
+
+def make_web():
+    """
+    :return: 浏览器窗口
+    """
+    chrome_options = Options()
+    
+    # 添加请求头
+    chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('accept=text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8')
+    chrome_options.add_argument('accept-encoding=gzip, deflate, br')
+    chrome_options.add_argument('accept-language=zh-CN,zh;q=0.9')
+    
+    # 添加其他选项
+    chrome_options.add_argument('--headless')  # Windows 调试时可以注释掉这行，看到浏览器界面
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+    
+    try:
+        # # 获取当前文件所在目录
+        # current_dir = os.path.dirname(os.path.abspath(__file__))
+        # # ChromeDriver 路径
+        # chromedriver_path = os.path.join(current_dir, 'chromedriver.exe')
+        
+        # 创建浏览器实例
+        bro = webdriver.Chrome(
+            #executable_path=chromedriver_path,
+            options=chrome_options
+        )
+        
+        # # 设置超时时间
+        # bro.set_page_load_timeout(60)
+        # bro.implicitly_wait(20)
+        
+        return bro
+        
+    except Exception as e:
+        print(f"创建浏览器实例失败: {str(e)}")
+        if 'bro' in locals():
+            bro.quit()
+        raise
 
 def send_price_alert(user_email, good, current_price,prise):
     """发送价格提醒邮件"""
@@ -191,7 +239,7 @@ def Login(request):
     if request.method == 'POST':
         if req['method'] == 'jd_login':
             if req['user_id'] not in jd_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://passport.jd.com/new/login.aspx')
                 res = jd_login(bro)
             else:
@@ -209,7 +257,7 @@ def Login(request):
                 
         elif req['method'] == 'vph_login':
             if req['user_id'] not in vph_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://category.vip.com/suggest.php?keyword=1')
                 res = vph_login(bro)
             else:
@@ -226,7 +274,7 @@ def Login(request):
 
         elif req['method'] == 'sn_login':
             if req['user_id'] not in sn_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://passport.suning.com/ids/login?service=https%3A%2F%2Floginst.suning.com%2F%2Fauth%3FtargetUrl%3Dhttps%253A%252F%252Fwww.suning.com%252F&method=GET&loginTheme=b2c')
                 res = sn_login(bro)
             else:
@@ -240,7 +288,7 @@ def Login(request):
                 sn_map[req['user_id']] = res[1]
                 response['qrcode'] = res[2]
                 response['message'] = '待扫码'
-
+        print(response['message'])
         return JsonResponse(response)
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
@@ -256,7 +304,7 @@ def GoodSearch(request):
             jd_cookie = jdCookie.objects.get(user_id=user)
             cookies = json.loads(jd_cookie.cookie)
             if req['user_id'] not in jd_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://www.jd.com/')
                 for cookie in cookies:
                     bro.add_cookie(cookie)
@@ -270,7 +318,7 @@ def GoodSearch(request):
             vph_cookie = vphCookie.objects.get(user_id=user)
             cookies = json.loads(vph_cookie.cookie)
             if req['user_id'] not in vph_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://www.vip.com/')
                 for cookie in cookies:
                     cookie['domain'] = '.vip.com'
@@ -285,7 +333,7 @@ def GoodSearch(request):
             sn_cookie = snCookie.objects.get(user_id=user)
             cookies = json.loads(sn_cookie.cookie)
             if req['user_id'] not in sn_map:
-                bro = avoid_check()
+                bro = make_web()
                 bro.get('https://www.suning.com/')
                 for cookie in cookies:
                     bro.add_cookie(cookie)

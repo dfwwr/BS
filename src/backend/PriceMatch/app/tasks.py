@@ -6,7 +6,7 @@ from datetime import datetime
 from .jd import jd_fatch
 from .vph import vph_fatch
 from .sn import sn_fatch
-from .tools import avoid_check
+from .views import make_web
 import json
 from .views import send_price_alert
 
@@ -21,7 +21,7 @@ def check_price_changes():
             latest_log = Log.objects.filter(good_id=good).order_by('-timestamp').first()
             if not latest_log:
                 continue
-            bro = avoid_check()
+            bro = make_web()
             if good.good_platform == '京东':
                 bro.get('https://www.jd.com/')
                 products, _ = jd_fatch(good.good_name, bro)

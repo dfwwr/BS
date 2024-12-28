@@ -5,3 +5,4 @@ django-crontab
 msedge-selenium-tools
 APScheduler
 lxml
+urllib3<1.26.2
